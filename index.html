@@ -96,9 +96,12 @@
 }
 </script>
 
-<!-- Plausible -->
-<script defer data-domain="ronhefler.co.il" src="https://plausible.io/js/script.tagged-events.js"></script>
-<script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
+<!-- Privacy-friendly analytics by Plausible -->
+<script async src="https://plausible.io/js/pa-U4f7JfjNN2btWmwgKb4tl.js"></script>
+<script>
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init();
+</script>
 
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -867,6 +870,14 @@
           window.scrollTo({top: target.offsetTop - 60, behavior:"smooth"});
         }
       }
+    });
+  });
+
+  /* LEAD EVENT TRACKING — fire a Plausible "Lead" event on every CTA click.
+     Works regardless of Plausible extensions (tagged-events / file-downloads / etc). */
+  document.querySelectorAll('.plausible-event-name\\=Lead, a[href*="wa.me/"], a[href^="tel:"]').forEach(el=>{
+    el.addEventListener("click",()=>{
+      try { window.plausible && window.plausible("Lead"); } catch(_){}
     });
   });
 </script>
