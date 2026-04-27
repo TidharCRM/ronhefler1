@@ -97,6 +97,17 @@
   .money-delta strong { color:var(--accent); font-family:"Mamilla",serif; font-weight:600; }
   .money-explain { margin-top:14px; color:var(--ink-dim); font-size:13px; max-width:48ch; margin-inline:auto; }
 
+  /* ---------- DEMO BANNER ---------- */
+  .demo-banner{
+    max-width:820px;margin:24px auto 0;padding:14px 22px;
+    border:1px solid var(--accent);border-radius:14px;
+    background:linear-gradient(180deg, rgba(214,184,122,.10), rgba(214,184,122,.02));
+    font-size:13px;color:var(--ink-soft);text-align:center;line-height:1.6;
+    display:none;
+  }
+  .demo-banner.show{display:block}
+  .demo-banner strong{color:var(--accent);font-family:"Mamilla",serif;font-weight:600}
+
   /* ---------- STAT CARDS ---------- */
   .stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; background:var(--line); border:1px solid var(--line); border-radius:24px; overflow:hidden; }
   .stat-card { background:var(--bg-1); padding:36px 28px; text-align:center; }
@@ -163,6 +174,9 @@
     <div class="money-saved" id="money-saved">₪—</div>
     <div class="money-delta">החודש: <strong id="money-delta">₪—</strong></div>
     <div class="money-explain">מחושב לפי מספר הלידים שהגיעו דרך האתר ב-30 הימים האחרונים, מוכפל בערך הממוצע של ליד עבורך.</div>
+    <div class="demo-banner" id="demo-banner">
+      <strong>📊 מצב הדגמה</strong> — נתוני האנליטיקה עוד לא מחוברים. ברגע שיתחברו (אחרי שהדומיין יוקם ו-Plausible יוגדר), הספירות כאן יחליפו את הנתונים לדוגמה ויראו את הביקורים והלידים האמיתיים שלך.
+    </div>
   </section>
 
   <section style="padding:60px 0">
@@ -248,34 +262,50 @@
   document.getElementById('cta-membership').href =
     `https://wa.me/${KLIX_PHONE}?text=${encodeURIComponent(`היי, אני רוצה לדבר על המנוי שלי (${CLIENT_NAME}) — שדרוג / השהיה / ביטול`)}`;
 
-  /* Number animation */
+  /* Number animation — uses setTimeout (RAF can be throttled by heavy bg animations on this page) */
   function animateNumber(el, target, formatter) {
-    const duration = 1400;
-    const start = performance.now();
-    function tick(now) {
-      const t = Math.min(1, (now - start) / duration);
+    const duration = 1400, fps = 30;
+    const frames = Math.round(duration / (1000/fps));
+    let f = 0;
+    const tick = () => {
+      f++;
+      const t = Math.min(1, f / frames);
       const eased = 1 - Math.pow(1 - t, 3);
       el.textContent = formatter(Math.round(target * eased));
-      if (t < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
+      if (t < 1) setTimeout(tick, 1000/fps);
+    };
+    el.textContent = formatter(0);
+    tick();
   }
 
-  /* Demo fallback while not connected to Plausible yet */
+  /* Demo fallback while not connected to Plausible yet — shows realistic sample numbers
+     so the dashboard demonstrates what it will look like once Plausible is wired up. */
+  const VALUE_PER_LEAD = 400;
+  const demoLeads30 = 18;
+  const demoLeadsMonth = 12;
+  const demoVisitors = 740;
   const demo = {
-    moneySaved: 0,
-    moneySavedThisMonth: 0,
-    visitors: 0,
-    leads: 0,
-    conversionRate: 0,
-    timeseries: Array.from({length:30}).map((_,i)=>({date:`2026-04-${String(i+1).padStart(2,'0')}`, visitors:0})),
+    moneySaved: demoLeads30 * VALUE_PER_LEAD,
+    moneySavedThisMonth: demoLeadsMonth * VALUE_PER_LEAD,
+    visitors: demoVisitors,
+    leads: demoLeads30,
+    conversionRate: demoLeads30 / demoVisitors,
+    timeseries: (() => {
+      const today = new Date();
+      return Array.from({length:30}).map((_,i)=>{
+        const d = new Date(today); d.setDate(today.getDate() - (29-i));
+        const base = 18 + Math.round(Math.sin(i*0.4)*6 + (i*0.4)) + (i>20?6:0);
+        return { date: d.toISOString().slice(0,10), visitors: Math.max(4, base + Math.round((Math.random()-0.5)*8)) };
+      });
+    })(),
     sources: [
-      { source: 'Direct / None', visitors: 0 },
-      { source: 'Google', visitors: 0 },
-      { source: 'WhatsApp', visitors: 0 },
-      { source: 'Instagram', visitors: 0 },
-      { source: 'Facebook', visitors: 0 },
+      { source: 'Google',    visitors: 312 },
+      { source: 'Direct / None', visitors: 198 },
+      { source: 'WhatsApp',  visitors: 124 },
+      { source: 'Instagram', visitors: 64 },
+      { source: 'Facebook',  visitors: 42 },
     ],
+    isDemo: true,
   };
 
   function render(d){
@@ -322,8 +352,11 @@
 
   fetch('/api/stats')
     .then(r => r.ok ? r.json() : Promise.reject(new Error('api ' + r.status)))
-    .then(render)
-    .catch(() => render(demo));
+    .then(d => { render(d); })
+    .catch(() => {
+      document.getElementById('demo-banner').classList.add('show');
+      render(demo);
+    });
 </script>
 
 </body>
