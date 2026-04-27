@@ -10,13 +10,22 @@ export default async function handler(req, res) {
   const headers = { Authorization: `Bearer ${key}` };
   const base = 'https://plausible.io/api/v1/stats';
 
+  const fetchJson = async (url) => {
+    const res = await fetch(url, { headers });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(`Plausible API failed ${res.status}: ${JSON.stringify(json)}`);
+    }
+    return json;
+  };
+
   try {
     const [agg, ts, sources, leads30, leadsMonth] = await Promise.all([
-      fetch(`${base}/aggregate?site_id=${domain}&period=30d&metrics=visitors,pageviews,bounce_rate`, { headers }).then(r => r.json()),
-      fetch(`${base}/timeseries?site_id=${domain}&period=30d&metrics=visitors`, { headers }).then(r => r.json()),
-      fetch(`${base}/breakdown?site_id=${domain}&period=30d&property=visit:source&limit=5`, { headers }).then(r => r.json()),
-      fetch(`${base}/aggregate?site_id=${domain}&period=30d&filters=event:name==Lead&metrics=events`, { headers }).then(r => r.json()),
-      fetch(`${base}/aggregate?site_id=${domain}&period=month&filters=event:name==Lead&metrics=events`, { headers }).then(r => r.json()),
+      fetchJson(`${base}/aggregate?site_id=${domain}&period=30d&metrics=visitors,pageviews,bounce_rate`),
+      fetchJson(`${base}/timeseries?site_id=${domain}&period=30d&metrics=visitors`),
+      fetchJson(`${base}/breakdown?site_id=${domain}&period=30d&property=visit:source&limit=5`),
+      fetchJson(`${base}/aggregate?site_id=${domain}&period=30d&filters=event:name==Lead&metrics=events`),
+      fetchJson(`${base}/aggregate?site_id=${domain}&period=month&filters=event:name==Lead&metrics=events`),
     ]);
 
     const visitors = agg?.results?.visitors?.value ?? 0;
