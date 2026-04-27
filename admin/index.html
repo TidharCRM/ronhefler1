@@ -352,7 +352,15 @@
 
   fetch('/api/stats')
     .then(r => r.ok ? r.json() : Promise.reject(new Error('api ' + r.status)))
-    .then(d => { render(d); })
+    .then(d => {
+      // If API works but there's no real traffic yet, show a "waiting for first visit" banner
+      if ((d.visitors || 0) === 0 && (d.leads || 0) === 0) {
+        const banner = document.getElementById('demo-banner');
+        banner.innerHTML = '<strong>⏳ ממתין לביקורים הראשונים</strong> — Plausible מחובר ופעיל. ברגע שיגיעו לאתר ביקורים ולידים, הספירות כאן יתחילו לזוז (התעדכנות כל 5 דקות).';
+        banner.classList.add('show');
+      }
+      render(d);
+    })
     .catch(() => {
       document.getElementById('demo-banner').classList.add('show');
       render(demo);
