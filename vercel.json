@@ -2,6 +2,11 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "has": [{ "type": "host", "value": "admin.ronhefler.co.il" }],
+      "destination": "/api/$1"
+    },
+    {
       "source": "/(.*)",
       "has": [{ "type": "host", "value": "admin.ronhefler.co.il" }],
       "destination": "/admin/$1"
